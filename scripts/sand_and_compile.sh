@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ $# -lt 1 ]; then
 	echo "Warning: IP Address as default (192.168.200.1)!"
