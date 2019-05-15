@@ -6,15 +6,18 @@
 #define LOGIN		"pi"
 #define	PASSWORD	"atitudes"
 
+
 int main(int argc, char const *argv[]) 
 {
 	
-
+	//FILE *fpd, *fpg_uno, *fpg_mega;
+	//char palavra[100];
 	char ip_rasp[16] = "192.168.200.1\0";
 	char name[50];
 	char dev[20] = "/dev/ttyACM0\0";
 	char scpcommand[500];
 	char arduino_command[500];
+	char board[] = "uno\0" ;//"mega\0";
 	int c = 0, ip = 0, f = 0;
 
 	// arduino -c codigo [-ip address] [-p port]
@@ -26,7 +29,8 @@ int main(int argc, char const *argv[])
 
 	for (int i = 1; i < argc; i++){
 		if ((strcmp(argv[i], "-c"))==0){
-			c = i;
+			c = i;	sprintf(scpcommand, "sshpass -p %s scp -r ~/git/mesa/src/arduino/%s %s@%s:/home/pi/src/arduino", PASSWORD, name, LOGIN, ip_rasp);
+
 		}
 		else if ((strcmp(argv[i], "-ip"))==0){
 			ip = i;
@@ -37,7 +41,32 @@ int main(int argc, char const *argv[])
 
 	}
 	
+	/*
+	system("dmesg > /home/pi/temp/dmesg.txt");
+	system("grep -n Uno /home/pi/temp/dmesg.txt > /home/pi/temp/grep_uno.txt");
+	system("grep -n Mega /home/pi/temp/dmesg.txt > /home/pi/temp/grep_mega.txt");
 
+	fpd = fopen("/home/pi/temp/dmesg.txt", "r");
+	fpg_uno = fopen("/home/pi/temp/grep_uno.txt", "r");
+	fpg_mega = fopen("/home/pi/temp/grep_mega.txt", "r");
+
+	do {
+		fscanf(fpg_uno, "%s", &palavra);
+		printf("%s \n", palavra);
+	}
+	while(palavra != 'EOF');
+
+
+
+	fclose(fpd);
+	fclose(fpg_uno);
+	fclose(fpg_mega);
+
+	system("rm /home/pi/temp/*");
+
+
+
+*/
 	if (c){
 
 		strcpy(name,argv[c+1]);
@@ -64,7 +93,8 @@ int main(int argc, char const *argv[])
 	
 
 	sprintf(scpcommand, "sshpass -p %s scp -r ~/git/mesa/src/arduino/%s %s@%s:/home/pi/src/arduino", PASSWORD, name, LOGIN, ip_rasp);
-	sprintf(arduino_command,"sshpass -p %s ssh %s@%s 'cd /home/pi/src/arduino && arduino --upload %s/%s.ino --port %s'", PASSWORD, LOGIN, ip_rasp,name,name, dev);
+	sprintf(arduino_command,"sshpass -p %s ssh %s@%s 'cd /home/pi/src/arduino && arduino --board arduino:avr:%s --upload %s/%s.ino --port %s'", PASSWORD, LOGIN, ip_rasp, board, name,name, dev);
+	// --board package:architecture:board[:parameters]
 
 
 	system(scpcommand);
