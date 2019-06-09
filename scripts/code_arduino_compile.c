@@ -14,10 +14,11 @@ int main(int argc, char const *argv[])
 	//char palavra[100];
 	char ip_rasp[16] = "192.168.200.1\0";
 	char name[50];
-	char dev[20] = "/dev/ttyACM0\0";
+	char dev[20] = "/dev/ttyACM0\0";//Carol, lembre de descobrir com faz para achar a porta automaticamente
 	char scpcommand[500];
 	char arduino_command[500];
-	char board[] = "uno\0" ;//"mega\0";
+	//char board[] = "uno\0" ;//"mega\0";
+	char board[] = "mega\0"; 
 	int c = 0, ip = 0, f = 0;
 
 	// arduino -c codigo [-ip address] [-p port]
@@ -93,7 +94,7 @@ int main(int argc, char const *argv[])
 	
 
 	sprintf(scpcommand, "sshpass -p %s scp -r ~/git/mesa/src/arduino/%s %s@%s:/home/pi/src/arduino", PASSWORD, name, LOGIN, ip_rasp);
-	sprintf(arduino_command,"sshpass -p %s ssh %s@%s 'cd /home/pi/src/arduino && arduino --board arduino:avr:%s --upload %s/%s.ino --port %s'", PASSWORD, LOGIN, ip_rasp, board, name,name, dev);
+	sprintf(arduino_command,"sshpass -p %s ssh %s@%s 'cd /home/pi/src/arduino/%s && arduino --board arduino:avr:%s --upload %s.ino --port %s'", PASSWORD, LOGIN, ip_rasp, name, board, name, dev);
 	// --board package:architecture:board[:parameters]
 
 

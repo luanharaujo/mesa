@@ -10,6 +10,8 @@
 #define MICROMAX 10000
 #define MICROMIN 250
 
+#define SLEEP_MOTORS 32
+
 Ramps ramps = Ramps();
 
 
@@ -99,6 +101,7 @@ void serialEvent()  // Obs: ocorre apenas depois de loop() ser executado.
 {
   getValidData();     // Obtem msg sem parar o codigo, importante que se tenha uma boa frequencia de execucao de loop().
   storeValidData();   // Armazena msg caso tenha tido uma msg completa recebida.
+  Serial.print("r");  //ack de recebimento
 }
 
 void setup()
@@ -123,7 +126,11 @@ void setup()
       Serial.print("c");      // Msg de persistencia na espera.
     }
     delay(100);         // Simplesmente para nao enviar muitas msgs desnecessarias.
-  }  
+  }
+
+
+  pinMode(SLEEP_MOTORS, OUTPUT);
+    
 }
 
 void loop ()
@@ -139,82 +146,93 @@ void loop ()
 //    Serial.print(digitalRead(Y_MAX_PIN));
 //    Serial.print(digitalRead(Z_MAX_PIN));
 
-    if(xativo)
-    {
-      ramps.motorX.stepOff();
-      xativo = 0;
-    }
     
-    if(velX == 0)
+
+    if(velX == 0 && velY == 0)
     {
-      ramps.motorX.stepOff();
-      lastupdatX = micros();  
+      //dormindo
+      digitalWrite(SLEEP_MOTORS,LOW);
     }
     else
     {
-      if(velX>0)
+      //acordando
+      digitalWrite(SLEEP_MOTORS,HIGH);
+      if(xativo)
       {
-        ramps.motorX.setDir(1);
-        microsecondsX = map(velX, VELMIM, VELMAX, MICROMAX, MICROMIN); 
+        ramps.motorX.stepOff();
+        xativo = 0;
+      }
+      if(velX == 0)
+      {
+        ramps.motorX.stepOff();
+        lastupdatX = micros();  
       }
       else
       {
-        ramps.motorX.setDir(-1);
-        microsecondsX = map(-velX, VELMIM, VELMAX, MICROMAX, MICROMIN);  
+        if(velX>0)
+        {
+          ramps.motorX.setDir(1);
+          microsecondsX = map(velX, VELMIM, VELMAX, MICROMAX, MICROMIN); 
+        }
+        else
+        {
+          ramps.motorX.setDir(-1);
+          microsecondsX = map(-velX, VELMIM, VELMAX, MICROMAX, MICROMIN);  
+        }
+        
+        if(micros()-lastupdatX >= microsecondsX)
+        {
+  //        //liga
+  //        if(xativo)
+  //        {
+  //          ramps.motorX.stepOff();
+  //          xativo = 0;
+  //        }
+  //       
+          
+          ramps.motorX.stepOn();
+          xativo = 1;
+          
+          lastupdatX = micros();
+        } 
       }
-      
-      if(micros()-lastupdatX >= microsecondsX)
+  
+       if(yativo)
       {
-//        //liga
-//        if(xativo)
-//        {
-//          ramps.motorX.stepOff();
-//          xativo = 0;
-//        }
-//       
-        
-        ramps.motorX.stepOn();
-        xativo = 1;
-        
-        lastupdatX = micros();
-      } 
-    }
-
-     if(yativo)
-    {
-      ramps.motorY.stepOff();
-      ramps.motorZ.stepOff();
-      yativo = 0;
-    }
-
-    if(velY == 0)
-    {
-      ramps.motorY.stepOff();
-      ramps.motorZ.stepOff();
-      lastupdatY = micros();  
-    }
-    else
-    {
-      if(velY>0)
+        ramps.motorY.stepOff();
+        ramps.motorZ.stepOff();
+        yativo = 0;
+      }
+  
+      if(velY == 0)
       {
-        ramps.motorY.setDir(1);
-        ramps.motorZ.setDir(1);
-        microsecondsY = map(velY, VELMIM, VELMAX, MICROMAX, MICROMIN); 
+        ramps.motorY.stepOff();
+        ramps.motorZ.stepOff();
+        lastupdatY = micros();  
       }
       else
       {
-        ramps.motorY.setDir(-1);
-        ramps.motorZ.setDir(-1);
-        microsecondsY = map(-velY, VELMIM, VELMAX, MICROMAX, MICROMIN);  
-      }
-      
-      if(micros()-lastupdatY >= microsecondsY)
-      {
-        ramps.motorY.stepOn();
-        ramps.motorZ.stepOn();
-        yativo = 1;
+        if(velY>0)
+        {
+          ramps.motorY.setDir(1);
+          ramps.motorZ.setDir(1);
+          microsecondsY = map(velY, VELMIM, VELMAX, MICROMAX, MICROMIN); 
+        }
+        else
+        {
+          ramps.motorY.setDir(-1);
+          ramps.motorZ.setDir(-1);
+          microsecondsY = map(-velY, VELMIM, VELMAX, MICROMAX, MICROMIN);  
+        }
         
-        lastupdatY = micros();
-      } 
+        if(micros()-lastupdatY >= microsecondsY)
+        {
+          ramps.motorY.stepOn();
+          ramps.motorZ.stepOn();
+          yativo = 1;
+          
+          lastupdatY = micros();
+        } 
+      }
     }
 }

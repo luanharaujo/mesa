@@ -45,10 +45,17 @@ void init_motors()
 void setupCommSerial()
 {
 	int ok = 0;
-
+	char port[15];
+	int i = 0;
 	do
 	{
-		arduino = serialOpen("/dev/ttyUSB0", BAUDRATE);	// Inicia comunicacao serial com baud rate 115200bps.
+		if(i>20)
+		{
+			i = 0;
+		}
+		sprintf(port,"/dev/ttyUSB%d", i++);
+		//printf("%s\n", port);
+		arduino = serialOpen(port, BAUDRATE);	// Inicia comunicacao serial com baud rate 115200bps.
 		//printf("no setup\n");
 	} while (arduino <= 0);
 
@@ -148,7 +155,7 @@ void storeValidData()	// Aqui que sera mudado para nossas necessidades. No caso 
 	// }
 }
 
-void write_motors()
+int write_motors()
 {
 	char deliver[MSG_MAX];
 	int i = 0;
@@ -164,6 +171,11 @@ void write_motors()
 			break;
 		}
 	}
+	if (serialGetchar(arduino)!='r')
+	{
+		serialClose(arduino);
+		return -1;
+	}
 	//printf("\n");
 	i = 0;
 	snprintf(deliver, MSG_MAX, ":%dy;", y_motor);		// Prepara a msg a ser enviada.
@@ -177,6 +189,12 @@ void write_motors()
 			break;
 		}
 	}
+	if (serialGetchar(arduino)!='r')
+	{
+		serialClose(arduino);
+		return -1;
+	}
+	return 0;
 	//printf("\n");
 }
 

@@ -92,20 +92,20 @@ point_t DeltaRamps::convertToAxes(point_t point)
 	//voor de berekeningen ligt de oorsprong in de top
 	point.z = point.z + Oz - H;
 
-	double Cx  =	square(point.x) + square(point.y) + square(point.z)
-					+ square(a) + square(b) + 2*a*point.x + 2*b*point.y
-					- square(l);
+	double Cx  =	point.x*(point.x) + point.y*(point.y) + point.z*(point.z)
+					+ a*(a) + b*(b) + 2*a*point.x + 2*b*point.y
+					- l*(l);
 
-	double Cy  =	square(point.x) + square(point.y) + square(point.z)
-	 				+ square(a) + square(b) - 2*a*point.x + 2*b*point.y
-					- square(l);
+	double Cy  =	point.x*(point.x) + point.y*(point.y) + point.z*(point.z)
+	 				+ a*(a) + b*(b) - 2*a*point.x + 2*b*point.y
+					- l*(l);
 
-	double Cz  =	square(point.x) + square(point.y) + square(point.z)
-	 				+ square(c) + 2*c*point.y - square(l);
+	double Cz  =	point.x*(point.x) + point.y*(point.y) + point.z*(point.z)
+	 				+ c*(c) + 2*c*point.y - l*(l);
 
-	Axes.x = ((-1)*point.z - sqrt(square(point.z) - Cx)) * stepsmm;
-	Axes.y = ((-1)*point.z - sqrt(square(point.z) - Cy)) * stepsmm;
-	Axes.z = ((-1)*point.z - sqrt(square(point.z) - Cz)) * stepsmm;
+	Axes.x = ((-1)*point.z - sqrt(point.z*(point.z) - Cx)) * stepsmm;
+	Axes.y = ((-1)*point.z - sqrt(point.z*(point.z) - Cy)) * stepsmm;
+	Axes.z = ((-1)*point.z - sqrt(point.z*(point.z) - Cz)) * stepsmm;
 
 	return Axes;
 }
