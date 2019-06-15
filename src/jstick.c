@@ -5,6 +5,13 @@
 #include <signal.h>
 #include <stdlib.h>
 
+/* test_bit  : Courtesy of Johan Deneux */
+#define BITS_PER_LONG (sizeof(long) * 8)
+#define OFF(x)  ((x)%BITS_PER_LONG)
+#define BIT(x)  (1UL<<OFF(x))
+#define LONG(x) ((x)/BITS_PER_LONG)
+#define test_bit(bit, array)    ((array[LONG(bit)] >> OFF(bit)) & 1)
+
 #define DEAD_ZONE 3500
 #define ZERO_VAL 32768
 
@@ -14,19 +21,19 @@
 #define A_KEY 304
 #define LB_KEY 310
 #define RB_KEY 311
-#define LT_KEY 10
-#define RT_KEY 9
+#define LT_KEY 2
+#define RT_KEY 5
 #define DPAD_UD 17
 #define DPAD_LR 16
 #define LANALOG_UD 1
 #define LANALOG_LR 0
 #define LANALOG_PRESS 317
-#define RANALOG_UD 5
-#define RANALOG_LR 2
+#define RANALOG_UD 4
+#define RANALOG_LR 3
 #define RANALOG_PRESS 318
 #define START 315
-#define SELECT 158
-#define HOME 172
+#define SELECT 314
+#define HOME 316
 
 /*
 struct input_event {
@@ -39,6 +46,7 @@ __s32 value;
 
 // Device name of the XBox Controller being used.
 char devname[] = "/dev/input/event0";
+static unsigned long features[4];
 
 struct analog
 {
@@ -62,6 +70,7 @@ struct joystick
 	int start, select;
 	int home;
 	int disconnect;
+	int hasrumble;
 	struct input_event last_event;
 };
 
@@ -139,6 +148,11 @@ void update_print_js()
 	printf("\033[%d;%dH%04d\n", 15, 55, js.ranalog.right);
 	printf("\033[%d;%dH%d\n", 17, 30, js.dpad.down);
 	printf("\033[%d;%dH%04d\n", 17, 51, js.ranalog.down);
+	if (js.hasrumble) {
+		printf("\033[%d;%dH%s\n", 28, 0, "Device can rumble! c:");
+	} else {
+		printf("\033[%d;%dH%s\n", 28, 0, "Device can't rumble :c");
+	}
 }
 
 // Opens joystick device file and sets all struct variables to 0.
@@ -147,7 +161,7 @@ void init_joystick(struct joystick *js, char devname[])
 	while (!exists(devname))
 		sleep(0.5);
 
-	js->device = open(devname, O_RDONLY);
+	js->device = open(devname, O_RDWR);
 	js->B = 0;
 	js->Y = 0;
 	js->X = 0;
@@ -174,6 +188,18 @@ void init_joystick(struct joystick *js, char devname[])
 	js->select = 0;
 	js->home = 0;
 	js->disconnect = 0;
+	js->hasrumble = 0;
+
+	if (ioctl(js->device, EVIOCGBIT(EV_FF, sizeof(unsigned long) * 4), features) == -1)
+	{
+		/* This device can't rumble, or the drivers don't support it */
+	} else {
+		/* Success! This device can rumble! */
+		if (test_bit(FF_RUMBLE, features))
+		{
+			js->hasrumble = 1;
+		}
+	}
 }
 
 /* Remaps the analog values to a range between 0 and 1023.
@@ -289,6 +315,9 @@ void update_joystick(struct joystick *js)
 				}
 				break;
 			case LANALOG_UD:
+				printf("\033[%d;%dH%s\n", 30, 0, "LANALOG_UD: ");
+				printf("\033[%d;%dH%s\n", 30, 15, "       ");
+				printf("\033[%d;%dH%d\n", 30, 15, ev.value);
 				if (ev.value < ZERO_VAL)
 				{
 					temp = analog_map(0, ZERO_VAL, ev.value);
@@ -303,6 +332,9 @@ void update_joystick(struct joystick *js)
 				}
 				break;
 			case LANALOG_LR:
+				printf("\033[%d;%dH%s\n", 31, 0, "LANALOG_LR: ");
+				printf("\033[%d;%dH%s\n", 31, 15, "         ");
+				printf("\033[%d;%dH%d\n", 31, 15, ev.value);
 				if (ev.value < ZERO_VAL)
 				{
 					temp = analog_map(0, ZERO_VAL, ev.value);
@@ -317,6 +349,9 @@ void update_joystick(struct joystick *js)
 				}
 				break;
 			case RANALOG_UD:
+				printf("\033[%d;%dH%s\n", 32, 0, "RANALOG_UD: ");
+				printf("\033[%d;%dH%s\n", 32, 15, "         ");
+				printf("\033[%d;%dH%d\n", 32, 15, ev.value);
 				if (ev.value < ZERO_VAL)
 				{
 					temp = analog_map(0, ZERO_VAL, ev.value);
@@ -331,6 +366,9 @@ void update_joystick(struct joystick *js)
 				}
 				break;
 			case RANALOG_LR:
+				printf("\033[%d;%dH%s\n", 33, 0, "RANALOG_LR: ");
+				printf("\033[%d;%dH%s\n", 33, 15, "         ");
+				printf("\033[%d;%dH%d\n", 33, 15, ev.value);
 				if (ev.value < ZERO_VAL)
 				{
 					temp = analog_map(0, ZERO_VAL, ev.value);
@@ -344,6 +382,12 @@ void update_joystick(struct joystick *js)
 					js->ranalog.right = temp;
 				}
 				break;
+			default:
+				if (ev.code != 4) {
+					printf("\033[%d;%dH%s\n", 29, 0, "Unknown ev.code: ");
+					printf("\033[%d;%dH%s\n", 29, 17, "         ");
+					printf("\033[%d;%dH%d\n", 29, 17, ev.code);
+				}
 			}
 		}
 	}
