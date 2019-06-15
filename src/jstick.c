@@ -13,7 +13,8 @@
 #define test_bit(bit, array)    ((array[LONG(bit)] >> OFF(bit)) & 1)
 
 #define DEAD_ZONE 3500
-#define ZERO_VAL 32768
+#define ZERO_VAL 0
+#define MAX_VAL 32768
 
 #define B_KEY 305
 #define Y_KEY 308
@@ -315,79 +316,61 @@ void update_joystick(struct joystick *js)
 				}
 				break;
 			case LANALOG_UD:
-				printf("\033[%d;%dH%s\n", 30, 0, "LANALOG_UD: ");
-				printf("\033[%d;%dH%s\n", 30, 15, "       ");
-				printf("\033[%d;%dH%d\n", 30, 15, ev.value);
 				if (ev.value < ZERO_VAL)
 				{
-					temp = analog_map(0, ZERO_VAL, ev.value);
+					temp = analog_map(-MAX_VAL, ZERO_VAL, ev.value);
 					js->lanalog.down = 0;
 					js->lanalog.up = temp;
 				}
 				else
 				{
-					temp = analog_map(65535, ZERO_VAL, ev.value);
+					temp = analog_map(MAX_VAL-1, ZERO_VAL, ev.value);
 					js->lanalog.up = 0;
 					js->lanalog.down = temp;
 				}
 				break;
 			case LANALOG_LR:
-				printf("\033[%d;%dH%s\n", 31, 0, "LANALOG_LR: ");
-				printf("\033[%d;%dH%s\n", 31, 15, "         ");
-				printf("\033[%d;%dH%d\n", 31, 15, ev.value);
 				if (ev.value < ZERO_VAL)
 				{
-					temp = analog_map(0, ZERO_VAL, ev.value);
+					temp = analog_map(-MAX_VAL, ZERO_VAL, ev.value);
 					js->lanalog.right = 0;
 					js->lanalog.left = temp;
 				}
 				else
 				{
-					temp = analog_map(65535, ZERO_VAL, ev.value);
+					temp = analog_map(MAX_VAL-1, ZERO_VAL, ev.value);
 					js->lanalog.left = 0;
 					js->lanalog.right = temp;
 				}
 				break;
 			case RANALOG_UD:
-				printf("\033[%d;%dH%s\n", 32, 0, "RANALOG_UD: ");
-				printf("\033[%d;%dH%s\n", 32, 15, "         ");
-				printf("\033[%d;%dH%d\n", 32, 15, ev.value);
 				if (ev.value < ZERO_VAL)
 				{
-					temp = analog_map(0, ZERO_VAL, ev.value);
+					temp = analog_map(-MAX_VAL, ZERO_VAL, ev.value);
 					js->ranalog.down = 0;
 					js->ranalog.up = temp;
 				}
 				else
 				{
-					temp = analog_map(65535, ZERO_VAL, ev.value);
+					temp = analog_map(MAX_VAL-1, ZERO_VAL, ev.value);
 					js->ranalog.up = 0;
 					js->ranalog.down = temp;
 				}
 				break;
 			case RANALOG_LR:
-				printf("\033[%d;%dH%s\n", 33, 0, "RANALOG_LR: ");
-				printf("\033[%d;%dH%s\n", 33, 15, "         ");
-				printf("\033[%d;%dH%d\n", 33, 15, ev.value);
 				if (ev.value < ZERO_VAL)
 				{
-					temp = analog_map(0, ZERO_VAL, ev.value);
+					temp = analog_map(-MAX_VAL, ZERO_VAL, ev.value);
 					js->ranalog.right = 0;
 					js->ranalog.left = temp;
 				}
 				else
 				{
-					temp = analog_map(65535, ZERO_VAL, ev.value);
+					temp = analog_map(MAX_VAL-1, ZERO_VAL, ev.value);
 					js->ranalog.left = 0;
 					js->ranalog.right = temp;
 				}
 				break;
-			default:
-				if (ev.code != 4) {
-					printf("\033[%d;%dH%s\n", 29, 0, "Unknown ev.code: ");
-					printf("\033[%d;%dH%s\n", 29, 17, "         ");
-					printf("\033[%d;%dH%d\n", 29, 17, ev.code);
-				}
 			}
 		}
 	}
