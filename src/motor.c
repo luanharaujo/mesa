@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <termios.h>   // using the termios.h library
+#include <termios.h> // using the termios.h library
 #include <stdbool.h>
 
 #define XMOTOR 0
@@ -33,11 +33,11 @@ void init_motors()
 {
 	int i = 0;
 	char devpath[20];
-	
-	setupCommSerial();				// Setup comunicacao serial.
+
+	setupCommSerial(); // Setup comunicacao serial.
 
 	unsigned long int now = micros();
-	
+
 	x_motor = 0;
 	y_motor = 0;
 }
@@ -47,37 +47,47 @@ void setupCommSerial()
 	int ok = 0;
 	char port[15];
 	int i = 0;
+	int arduinoACM;
+	// printf("Trying to connect to Arduino...\n");
 	do
 	{
-		if(i>20)
+		if (i > 20)
 		{
 			i = 0;
 		}
-		sprintf(port,"/dev/ttyUSB%d", i++);
-		//printf("%s\n", port);
-		arduino = serialOpen(port, BAUDRATE);	// Inicia comunicacao serial com baud rate 115200bps.
-		//printf("no setup\n");
+		sprintf(port, "/dev/ttyACM%d", i);
+		arduinoACM = serialOpen(port, BAUDRATE); // Inicia comunicacao serial com baud rate 115200bps.
+		if (arduinoACM <= 0)
+		{
+			sprintf(port, "/dev/ttyUSB%d", i++);
+			arduino = serialOpen(port, BAUDRATE); // Inicia comunicacao serial com baud rate 115200bps.
+		}
+		else
+		{
+			arduino = arduinoACM;
+		}
+		delay(50);
 	} while (arduino <= 0);
+	// printf("Connected to Arduino at %s\n", port);
 
 	//while (wiringPiSetup() == -1);		// Necessita de sudo.
 
-	do										// Espera a estabilizacao da comunicacao serial.
-   	{
-   		while(serialDataAvail(arduino))
-   		{
-   			msg[0] = serialGetchar(arduino);
-   			//printf("%c...\n",   msg[0]);			// Apenas para testes.
-   			if(msg[0] == 'c')						// Msg de nao recebimento.
-   			{
-   				serialPutchar(arduino, 'b');		// Reenvia msg de confirmacao de recebimento.
-   			}
-   			else
-   			if(msg[0] == 'a')						// Msg esperada receber, envio e recibo de msg funcionando.
-   			{
-   				ok = 1;
-   			}
-   		}
-   	} while (!ok);
+	do // Espera a estabilizacao da comunicacao serial.
+	{
+		while (serialDataAvail(arduino))
+		{
+			msg[0] = serialGetchar(arduino);
+			//printf("%c...\n",   msg[0]);			// Apenas para testes.
+			if (msg[0] == 'c') // Msg de nao recebimento.
+			{
+				serialPutchar(arduino, 'b'); // Reenvia msg de confirmacao de recebimento.
+			}
+			else if (msg[0] == 'a') // Msg esperada receber, envio e recibo de msg funcionando.
+			{
+				ok = 1;
+			}
+		}
+	} while (!ok);
 }
 
 static int lenght = 0;
@@ -102,7 +112,7 @@ void getValidData()
 	// 		lenght = msgp - 1;
 	// 		newMsg = true;						// Sinaliza uma nova msg recebida.
 	// 	}
-		
+
 	// 	msgp++;
 	// 	if (msgp >= MSG_MAX)				// Evitar a escrita em memoria inacessivel.
 	// 	{
@@ -111,7 +121,7 @@ void getValidData()
 	// }
 }
 
-void storeValidData()	// Aqui que sera mudado para nossas necessidades. No caso espera receber apenas um float.
+void storeValidData() // Aqui que sera mudado para nossas necessidades. No caso espera receber apenas um float.
 {
 	// if (newMsg)
 	// {
@@ -123,7 +133,7 @@ void storeValidData()	// Aqui que sera mudado para nossas necessidades. No caso 
 	// 			left_motor.vec_disp[left_motor.n_disp%MEDIAN_SIZE_MOTOR] = atof(msg);
 	// 			left_motor.displacement = getMediana_motor(left_motor.vec_disp);
 	// 			left_motor.n_disp++;
-				
+
 	// 			old_time_motorL = now_time_motorL;
 	// 			now_time_motorL = micros();
 	// 			left_motor.dt = (now_time_motorL - old_time_motorL)/1000000.0;
@@ -160,36 +170,36 @@ int write_motors()
 	char deliver[MSG_MAX];
 	int i = 0;
 
-	snprintf(deliver, MSG_MAX, ":%dx;", x_motor);		// Prepara a msg a ser enviada.
+	snprintf(deliver, MSG_MAX, ":%dx;", x_motor); // Prepara a msg a ser enviada.
 	while (deliver[i] != '\0')
 	{
-		serialPutchar(arduino, deliver[i]);		// Envio da msg char por char ate fim da string. Obs: existe na biblioteca a funcao "serialPrintf" mas ela nao funcionou.
+		serialPutchar(arduino, deliver[i]); // Envio da msg char por char ate fim da string. Obs: existe na biblioteca a funcao "serialPrintf" mas ela nao funcionou.
 		//printf("%c", deliver[i]);
 		i++;
-		if (i >= MSG_MAX)							// Evitar ir alem da string.
+		if (i >= MSG_MAX) // Evitar ir alem da string.
 		{
 			break;
 		}
 	}
-	if (serialGetchar(arduino)!='r')
+	if (serialGetchar(arduino) != 'r')
 	{
 		serialClose(arduino);
 		return -1;
 	}
 	//printf("\n");
 	i = 0;
-	snprintf(deliver, MSG_MAX, ":%dy;", y_motor);		// Prepara a msg a ser enviada.
+	snprintf(deliver, MSG_MAX, ":%dy;", y_motor); // Prepara a msg a ser enviada.
 	while (deliver[i] != '\0')
 	{
-		serialPutchar(arduino, deliver[i]);		// Envio da msg char por char ate fim da string. Obs: existe na biblioteca a funcao "serialPrintf" mas ela nao funcionou.
+		serialPutchar(arduino, deliver[i]); // Envio da msg char por char ate fim da string. Obs: existe na biblioteca a funcao "serialPrintf" mas ela nao funcionou.
 		//printf("%c", deliver[i]);
 		i++;
-		if (i >= MSG_MAX)							// Evitar ir alem da string.
+		if (i >= MSG_MAX) // Evitar ir alem da string.
 		{
 			break;
 		}
 	}
-	if (serialGetchar(arduino)!='r')
+	if (serialGetchar(arduino) != 'r')
 	{
 		serialClose(arduino);
 		return -1;
@@ -200,15 +210,15 @@ int write_motors()
 
 void setMotorSpeed(int motor, double speed)
 {
-	if(motor == XMOTOR)
+	if (motor == XMOTOR)
 	{
 		x_motor = speed;
-	} else if (motor == YMOTOR) {
+	}
+	else if (motor == YMOTOR)
+	{
 		y_motor = speed;
 	}
 }
-
-
 
 // // Abdullah's QuickSort implementation for usage with the Median Filter
 // unsigned Partition_motor(double array[], unsigned f, unsigned l, double pivot)

@@ -10,18 +10,18 @@
 
 #define DEBUG_JS 0
 
-int keep_running = 1;	// end of program flag. it is controlled by the
-						// joystick thread. if set to 0, all threads will
-						// finish up and set their own flags to 1 so that
-						// the main program can clean everything up and end.
+int keep_running = 1; // end of program flag. it is controlled by the
+					  // joystick thread. if set to 0, all threads will
+					  // finish up and set their own flags to 1 so that
+					  // the main program can clean everything up and end.
 
 int joystick_finished = 1;
 int motors_finished = 1;
 
-int shutdown_flag = 0, reboot = 0, close_program=0;	// flags set by joystick
-													// commands so that the
-													// program knows what to
-													// do when finishing up.
+int shutdown_flag = 0, reboot = 0, close_program = 0; // flags set by joystick
+													  // commands so that the
+													  // program knows what to
+													  // do when finishing up.
 
 /*
 This is the main thread. In it, we are supposed to put everything that doesn't
@@ -59,7 +59,7 @@ new features using the joystick controller.
 // 		delay(PERIOD/2);
 
 // 	}
-	
+
 // 	mira_finished = 1;
 // }
 
@@ -72,33 +72,39 @@ All joystick support functions available in the jstick.c file.
 */
 PI_THREAD(joystick)
 {
-    joystick_finished = 0;
+	joystick_finished = 0;
+	// printf("Starting joystick thread.\n");
 	piHiPri(0);
 
-    init_joystick(&js, devname);
-    if(DEBUG_JS) init_print_js();
- 
+	init_joystick(&js, devname);
+	if (DEBUG_JS)
+		init_print_js();
+
 	// START+SELECT finishes the program
-    while((!(js.select && js.start)) && (keep_running)) 
-    {
-		if(DEBUG_JS) update_print_js();
-		if(js.disconnect)
-        {
-        	//conectar novamente caso desconect
-		    init_joystick(&js, devname);
+	while ((!(js.select && js.start)) && (keep_running))
+	{
+		if (DEBUG_JS)
+			update_print_js();
+		if (js.disconnect)
+		{
+			//conectar novamente caso desconect
+			init_joystick(&js, devname);
 		}
-		
-        update_joystick(&js);
+
+		update_joystick(&js);
 	}
 	// If a D-Pad key is pressed along with START+SELECT when finishing
 	// the program, special finishing up routines are called inside the
 	// clean_up() function. They are:
 
 	// DOWN+START+SELECT: shuts the Raspberry Pi Zero W down
-	if(js.dpad.down) shutdown_flag = 1;
+	if (js.dpad.down)
+		shutdown_flag = 1;
 	// UP+START+SELECT: reboots the Raspberry Pi Zero W
-	if(js.dpad.up) reboot = 1;
+	if (js.dpad.up)
+		reboot = 1;
 
+	// printf("Closing joystick thread.\n");
 	keep_running = 0;
 	joystick_finished = 1;
 }
@@ -110,10 +116,10 @@ PI_THREAD(joystick)
 PI_THREAD(motors)
 {
 	motors_finished = 0;
+	// printf("Motors thread started.\n");
 	piHiPri(0);
 
 	init_motors();
-
 
 	int antigoR = 0;
 	int antigoL = 0;
@@ -122,10 +128,9 @@ PI_THREAD(motors)
 
 	int mudou = 0;
 
-	
-	while(keep_running)
+	while (keep_running)
 	{
-		if(js.lanalog.right != antigoR)
+		if (js.lanalog.right != antigoR)
 		{
 			setMotorSpeed(XMOTOR, js.lanalog.right);
 			// //inicio da zueira
@@ -143,7 +148,7 @@ PI_THREAD(motors)
 		}
 		else
 		{
-			if(js.lanalog.left != antigoL)
+			if (js.lanalog.left != antigoL)
 			{
 				setMotorSpeed(XMOTOR, -js.lanalog.left);
 				// //inicio da zueira
@@ -165,7 +170,7 @@ PI_THREAD(motors)
 			}
 		}
 
-		if(js.lanalog.up != antigoU)
+		if (js.lanalog.up != antigoU)
 		{
 			setMotorSpeed(YMOTOR, js.lanalog.up);
 			// //inicio da zueira
@@ -183,7 +188,7 @@ PI_THREAD(motors)
 		}
 		else
 		{
-			if(js.lanalog.down != antigoD)
+			if (js.lanalog.down != antigoD)
 			{
 				setMotorSpeed(YMOTOR, -js.lanalog.down);
 				// //inicio da zueira
@@ -201,34 +206,38 @@ PI_THREAD(motors)
 			}
 		}
 
-		if(mudou)
+		if (mudou)
 		{
 			//printf("voumndar!\n");
-			if(write_motors()!=0)
+			if (write_motors() != 0)
 			{
 				init_motors();
 			}
 			//printf("\tmandei\n");
 		}
 	}
+	// printf("Closing motors thread.\n");
 	motors_finished = 1;
-	
 }
-
 
 int am_i_su()
 {
-    if(geteuid())
-    	return 0;
-    return 1;
+	if (geteuid())
+		return 0;
+	return 1;
 }
 
 void clean_up()
 {
 	int nao_terminou = 1;
-	
-	do {
-		nao_terminou = !(joystick_finished && motors_finished); 
+
+	unsigned long begin_cleaning = millis();
+	int timeout;
+	// printf("Cleaning up threads before closing program\n");
+	do
+	{
+		nao_terminou = !(joystick_finished && motors_finished);
+		timeout = (millis() - begin_cleaning) > 3000;
 		/*
 		printf("%d...", main_finished);
 		printf("%d...", joystick_finished);
@@ -239,16 +248,18 @@ void clean_up()
 		printf("%d...", motors_finished);
 		printf("%d...\n", nao_terminou);
 		*/
-	} while(nao_terminou);
+	} while (nao_terminou && !timeout);
 
 	system("clear&");
-	if(shutdown_flag) system("sudo shutdown now&");
-	else if(reboot) system("sudo shutdown -r now&");
+	if (shutdown_flag)
+		system("sudo shutdown now&");
+	else if (reboot)
+		system("sudo shutdown -r now&");
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
-	if(!am_i_su())
+	if (!am_i_su())
 	{
 		printf("Restricted area. Super users only.\n");
 		return 0;
@@ -256,12 +267,11 @@ int main(int argc, char* argv[])
 
 	wiringPiSetupPhys();
 
-	
 	piThreadCreate(joystick);
 	piThreadCreate(motors);
 
-
-	while(keep_running) delay(100);
+	while (keep_running)
+		delay(100);
 	clean_up();
 
 	return 0;
