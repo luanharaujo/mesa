@@ -168,6 +168,7 @@ void storeValidData() // Aqui que sera mudado para nossas necessidades. No caso 
 int write_motors()
 {
 	char deliver[MSG_MAX];
+	char tmp;
 	int i = 0;
 
 	snprintf(deliver, MSG_MAX, ":%dx;", x_motor); // Prepara a msg a ser enviada.
@@ -181,12 +182,15 @@ int write_motors()
 			break;
 		}
 	}
-	if (serialGetchar(arduino) != 'r')
+	tmp = serialGetchar(arduino);
+	if ((tmp != 'r') && (tmp != 'f'))
 	{
 		serialClose(arduino);
-		return -1;
+		return -1;	// Character invalido.
+	} else if (tmp == 'f') {
+		return -2;	// Fim de curso ativado.
 	}
-	//printf("\n");
+	
 	i = 0;
 	snprintf(deliver, MSG_MAX, ":%dy;", y_motor); // Prepara a msg a ser enviada.
 	while (deliver[i] != '\0')
@@ -199,13 +203,14 @@ int write_motors()
 			break;
 		}
 	}
-	if (serialGetchar(arduino) != 'r')
+	tmp = serialGetchar(arduino);
+	if ((tmp != 'r') && (tmp != 'f'))
 	{
 		serialClose(arduino);
-		return -1;
+		return -1;	// Character invalido.
+	} else if (tmp == 'f') {
+		return -2;	// Fim de curso ativado.
 	}
-	return 0;
-	//printf("\n");
 }
 
 void setMotorSpeed(int motor, double speed)

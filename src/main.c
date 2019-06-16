@@ -8,7 +8,7 @@
 #include "jstick.c"
 #include "motor.c"
 
-#define DEBUG_JS 0
+#define DEBUG_JS 1
 
 int keep_running = 1; // end of program flag. it is controlled by the
 					  // joystick thread. if set to 0, all threads will
@@ -168,12 +168,15 @@ PI_THREAD(motors)
 
 		if (mudou)
 		{
-			//printf("voumndar!\n");
-			if (write_motors() != 0)
-			{
-				init_motors();
+			switch (write_motors()) {
+				case -1:
+					init_motors();
+				break;
+
+				case -2:
+					js_rumble(0, 100, 1000);
+				break;
 			}
-			//printf("\tmandei\n");
 		}
 	}
 	// printf("Closing motors thread.\n");

@@ -1,6 +1,16 @@
 #include "PololuDriver.h"
 #include "Ramps.h"
 
+// For RAMPS 1.4
+#define SEMI_ATI_MOTOR   3
+#define SEMI_ATI_MANCAL  2
+
+#define CAR_ATI          14
+#define CAR_PAS          15
+
+#define SEMI_PAS_MANCAL  18
+#define SEMI_PAS_MOTOR   19
+
 #define MSG_MAX 30
 #define SEND_PRECISION 3
 #define BAUDRATE 2000000
@@ -20,6 +30,7 @@ char msg[MSG_MAX];
 boolean newMsg = false;
 
 int lenght = 0;
+boolean naoh_pohde = false;
 
 int velY = 0;
 int velX = 0;
@@ -101,7 +112,11 @@ void serialEvent()  // Obs: ocorre apenas depois de loop() ser executado.
 {
   getValidData();     // Obtem msg sem parar o codigo, importante que se tenha uma boa frequencia de execucao de loop().
   storeValidData();   // Armazena msg caso tenha tido uma msg completa recebida.
-  Serial.print("r");  //ack de recebimento
+  if (naoh_pohde) {
+    Serial.print("f");  // Fim de curso.
+  } else {
+    Serial.print("r");  //ack de recebimento
+  }
 }
 
 void setup()
@@ -171,25 +186,31 @@ void loop ()
       {
         if(velX>0)
         {
-          ramps.motorX.setDir(1);
-          microsecondsX = map(velX, VELMIM, VELMAX, MICROMAX, MICROMIN); 
+          if (!digitalRead(CAR_PAS)) {
+            naoh_pohde = true;
+            digitalWrite(SLEEP_MOTORS,LOW);
+          } else {
+            naoh_pohde = false;
+            digitalWrite(SLEEP_MOTORS,HIGH);
+            ramps.motorX.setDir(1);
+            microsecondsX = map(velX, VELMIM, VELMAX, MICROMAX, MICROMIN); 
+          }
         }
         else
         {
-          ramps.motorX.setDir(-1);
-          microsecondsX = map(-velX, VELMIM, VELMAX, MICROMAX, MICROMIN);  
+          if (!digitalRead(CAR_ATI)) {
+            naoh_pohde = true;
+            digitalWrite(SLEEP_MOTORS,LOW);
+          } else {
+            naoh_pohde = false;
+            digitalWrite(SLEEP_MOTORS,HIGH);
+            ramps.motorX.setDir(-1);
+            microsecondsX = map(-velX, VELMIM, VELMAX, MICROMAX, MICROMIN);  
+          }
         }
         
         if(micros()-lastupdatX >= microsecondsX)
-        {
-  //        //liga
-  //        if(xativo)
-  //        {
-  //          ramps.motorX.stepOff();
-  //          xativo = 0;
-  //        }
-  //       
-          
+        { 
           ramps.motorX.stepOn();
           xativo = 1;
           
@@ -214,15 +235,29 @@ void loop ()
       {
         if(velY>0)
         {
-          ramps.motorY.setDir(1);
-          ramps.motorZ.setDir(1);
-          microsecondsY = map(velY, VELMIM, VELMAX, MICROMAX, MICROMIN); 
+          if ((!digitalRead(SEMI_ATI_MANCAL)) || (!digitalRead(SEMI_PAS_MANCAL))) {
+            naoh_pohde = true;
+            digitalWrite(SLEEP_MOTORS,LOW);
+          } else {
+            naoh_pohde = false;
+            digitalWrite(SLEEP_MOTORS,HIGH);
+            ramps.motorY.setDir(1);
+            ramps.motorZ.setDir(1);
+            microsecondsY = map(velY, VELMIM, VELMAX, MICROMAX, MICROMIN); 
+          }
         }
         else
         {
-          ramps.motorY.setDir(-1);
-          ramps.motorZ.setDir(-1);
-          microsecondsY = map(-velY, VELMIM, VELMAX, MICROMAX, MICROMIN);  
+          if ((!digitalRead(SEMI_ATI_MOTOR)) || (!digitalRead(SEMI_PAS_MOTOR))) {
+            naoh_pohde = true;
+            digitalWrite(SLEEP_MOTORS,LOW);
+          } else {
+            naoh_pohde = false;
+            digitalWrite(SLEEP_MOTORS,HIGH);
+            ramps.motorY.setDir(-1);
+            ramps.motorZ.setDir(-1);
+            microsecondsY = map(-velY, VELMIM, VELMAX, MICROMAX, MICROMIN);  
+          }
         }
         
         if(micros()-lastupdatY >= microsecondsY)
