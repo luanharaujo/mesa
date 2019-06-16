@@ -133,16 +133,6 @@ PI_THREAD(motors)
 		if (js.lanalog.right != antigoR)
 		{
 			setMotorSpeed(XMOTOR, js.lanalog.right);
-			// //inicio da zueira
-			// if(js.lanalog.right == 0)
-			// {
-			// 	setMotorSpeed(XMOTOR, 0);
-			// }
-			// else
-			// {
-			// 	setMotorSpeed(XMOTOR, 300);
-			// }
-			// //fim da zueira
 			antigoR = js.lanalog.right;
 			mudou = 1;
 		}
@@ -151,16 +141,6 @@ PI_THREAD(motors)
 			if (js.lanalog.left != antigoL)
 			{
 				setMotorSpeed(XMOTOR, -js.lanalog.left);
-				// //inicio da zueira
-				// if(js.lanalog.left == 0)
-				// {
-				// 	setMotorSpeed(XMOTOR, 0);
-				// }
-				// else
-				// {
-				// 	setMotorSpeed(XMOTOR, -300);
-				// }
-				// //fim da zueira
 				antigoL = js.lanalog.left;
 				mudou = 1;
 			}
@@ -173,16 +153,6 @@ PI_THREAD(motors)
 		if (js.lanalog.up != antigoU)
 		{
 			setMotorSpeed(YMOTOR, js.lanalog.up);
-			// //inicio da zueira
-			// if(js.lanalog.up == 0)
-			// {
-			// 	setMotorSpeed(YMOTOR, 0);
-			// }
-			// else
-			// {
-			// 	setMotorSpeed(YMOTOR, 300);
-			// }
-			// //fim da zueira
 			antigoU = js.lanalog.up;
 			mudou = 1;
 		}
@@ -191,16 +161,6 @@ PI_THREAD(motors)
 			if (js.lanalog.down != antigoD)
 			{
 				setMotorSpeed(YMOTOR, -js.lanalog.down);
-				// //inicio da zueira
-				// if(js.lanalog.down == 0)
-				// {
-				// 	setMotorSpeed(YMOTOR, 0);
-				// }
-				// else
-				// {
-				// 	setMotorSpeed(YMOTOR, -300);
-				// }
-				// //fim da zueira
 				antigoD = js.lanalog.down;
 				mudou = 1;
 			}
