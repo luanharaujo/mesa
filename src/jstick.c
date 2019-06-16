@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <errno.h>
 
 /* test_bit  : Courtesy of Johan Deneux */
 #define BITS_PER_LONG (sizeof(long) * 8)
@@ -36,14 +37,14 @@
 #define SELECT 314
 #define HOME 316
 
-/*
-struct input_event {
-struct timeval time;
-__u16 type;
-__u16 code;
-__s32 value;
-};
-*/
+// Global struct to contain all joystick button values
+struct joystick js;
+
+// Rumble effect variables.
+static struct ff_effect effects; 
+static struct input_event stop; 
+static struct input_event play;
+int rumble_flag;
 
 // Device name of the XBox Controller being used.
 char devname[] = "/dev/input/event0";
@@ -74,9 +75,6 @@ struct joystick
 	int hasrumble;
 	struct input_event last_event;
 };
-
-// Global struct to contain all joystick button values
-struct joystick js;
 
 // Function to check if joystick device exists (is connected).
 int exists(const char *fname)
@@ -190,6 +188,26 @@ void init_joystick(struct joystick *js, char devname[])
 	js->home = 0;
 	js->disconnect = 0;
 	js->hasrumble = 0;
+
+	/* Prepare the rumble effects */ 
+	effects.type = FF_RUMBLE; 
+	effects.u.rumble.strong_magnitude = 65535; 
+	effects.u.rumble.weak_magnitude = 65535; 
+	effects.replay.length = 1000; 
+	effects.replay.delay = 0; 
+	effects.id = -1; 
+ 
+	/* Prepare the stop rumble event */ 
+	stop.type = EV_FF; 
+	stop.code = effects.id; 
+	stop.value = 0; 
+       
+	/* Prepare the play rumble event */ 
+	play.type = EV_FF; 
+	play.code = effects.id; 
+	play.value = 1;
+
+	rumble_flag = 0;
 
 	if (ioctl(js->device, EVIOCGBIT(EV_FF, sizeof(unsigned long) * 4), features) == -1)
 	{
@@ -380,5 +398,58 @@ void update_joystick(struct joystick *js)
 		// disconnect flag to 1.
 		close(js->device);
 		js->disconnect = 1;
+	}
+}
+
+PI_THREAD(rumble) {
+	piHiPri(0);
+
+	int file = open(devname, O_RDWR);
+
+	/* Stop the effect if it's playing */ 
+	stop.code =  effects.id; 
+	if (write(file, (const void*) &stop, sizeof(stop)) == -1) { 
+		printf("error stopping effect"); 
+	} 
+
+	/* Send the effect to the driver */ 
+	if (ioctl(file, EVIOCSFF, &effects) == -1) { 
+		printf("Error to send rumble effect to drive!\n");
+		printf("errno: %s\n", strerror(errno));
+	} 
+
+	/* Play the effect */ 
+	play.code = effects.id; 
+
+	if (write(file, (const void*) &play, sizeof(play)) == -1){ 
+		printf("Error to play rumble effect!\n");
+		printf("errno: %s\n", strerror(errno));
+	} 
+
+	usleep((effects.replay.length+50)*1000);
+	close(file);
+	rumble_flag = 0;
+}
+
+void js_rumble(int strong, int weak, int duration) {
+	if (js.hasrumble) {		
+		if (!rumble_flag) {
+			if ((strong < 0) || (strong > 100) || (weak < 0) || (weak > 100) || (duration < 0)) {
+				printf("Invalid arguments to rumble bro!\n");
+				return;
+			}
+
+			rumble_flag = 1;
+
+			/* Modify effect data to create a new effect */ 
+			effects.u.rumble.strong_magnitude = strong*65535/100; 
+			effects.u.rumble.weak_magnitude = weak*65535/100; 
+			effects.replay.length = duration; 
+			effects.id = -1;   /* ID must be set to -1 for every new effect */
+
+			piThreadCreate(rumble);
+		}
+	} else {
+		printf("No rumble support!\n");
 	}
 }
